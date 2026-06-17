@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Navigator - Stay Updated & Share</title>
+    <meta name="description" content="Explore, search, and filter the latest Google BigQuery release notes. Easily select updates to customize and share them on Twitter/X with our interactive dashboard.">
+    
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="logo-wrapper">
+                    <i class="fa-solid fa-database logo-icon"></i>
+                    <div class="logo-glow"></div>
+                </div>
+                <div class="brand-text">
+                    <h1>BigQuery Release Navigator</h1>
+                    <p class="subtitle">Official Google Cloud Updates & Social Publisher</p>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <span id="last-updated-text" class="timestamp-badge">Checking for updates...</span>
+                <button id="refresh-btn" class="btn btn-primary btn-refresh" aria-label="Refresh release notes">
+                    <i class="fa-solid fa-arrows-rotate rotate-icon" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-layout">
+        <!-- Sidebar and Filters -->
+        <section class="controls-section" aria-label="Search and filter release notes">
+            <div class="card glass-card search-card">
+                <h2>Search & Filter</h2>
+                <p class="card-desc">Find specific updates and filter by release type.</p>
+                
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search updates (e.g., Gemini, tables)..." aria-label="Search release notes">
+                    <button id="clear-search-btn" class="clear-btn" style="display: none;" aria-label="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="filter-group">
+                    <h3>Filter by Type</h3>
+                    <div class="filter-pills" id="type-filters">
+                        <button class="filter-pill active" data-type="all">All Updates</button>
+                        <button class="filter-pill" data-type="Feature">
+                            <span class="dot dot-feature"></span>Feature
+                        </button>
+                        <button class="filter-pill" data-type="Announcement">
+                            <span class="dot dot-announcement"></span>Announcement
+                        </button>
+                        <button class="filter-pill" data-type="Issue">
+                            <span class="dot dot-issue"></span>Issue
+                        </button>
+                        <button class="filter-pill" data-type="Deprecation">
+                            <span class="dot dot-deprecation"></span>Deprecation
+                        </button>
+                        <button class="filter-pill" data-type="General">
+                            <span class="dot dot-general"></span>General/Other
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-summary" id="stats-summary">
+                    Showing <span id="displayed-count">0</span> of <span id="total-count">0</span> updates
+                </div>
+            </div>
+            
+            <!-- Quick Tips Card -->
+            <div class="card glass-card tips-card">
+                <h3><i class="fa-solid fa-lightbulb icon-yellow"></i> Pro Tips</h3>
+                <ul>
+                    <li>Click on any release card to select it for tweeting.</li>
+                    <li>Use the composer on the right to edit your tweet before posting.</li>
+                    <li>Filters combine dynamically with your text searches.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Main Feed and Tweet Composer -->
+        <div class="feed-and-composer-grid">
+            <!-- Feed Section -->
+            <section class="feed-section" aria-label="Release note items">
+                <div id="loading-state" class="loading-container">
+                    <div class="spinner-orbit">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <p>Fetching BigQuery Release Notes...</p>
+                </div>
+                
+                <div id="error-state" class="error-container" style="display: none;">
+                    <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                    <h3>Failed to load release notes</h3>
+                    <p id="error-message">Unknown error occurred while parsing the feed.</p>
+                    <button id="retry-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrows-rotate"></i> Try Again
+                    </button>
+                </div>
+
+                <div id="empty-state" class="empty-container" style="display: none;">
+                    <i class="fa-solid fa-inbox empty-icon"></i>
+                    <h3>No matching updates found</h3>
+                    <p>Try adjusting your search terms or filters.</p>
+                    <button id="reset-filters-btn" class="btn btn-secondary">Reset Filters</button>
+                </div>
+
+                <div id="feed-container" class="feed-list" style="display: none;">
+                    <!-- Release note cards will be injected here dynamically -->
+                </div>
+            </section>
+
+            <!-- Composer Section -->
+            <aside class="composer-section" aria-label="Tweet Composer">
+                <div class="card glass-card composer-card sticky-card" id="tweet-composer-card">
+                    <div class="composer-header">
+                        <h2>Tweet Composer</h2>
+                        <span class="status-indicator-dot" id="composer-status-dot"></span>
+                    </div>
+                    
+                    <div id="composer-empty-state" class="composer-empty-content">
+                        <div class="composer-placeholder-icon">
+                            <i class="fa-brands fa-x-twitter"></i>
+                        </div>
+                        <h3>No Update Selected</h3>
+                        <p>Select any specific update card from the feed to compose and customize a Tweet about it.</p>
+                    </div>
+
+                    <div id="composer-active-state" class="composer-active-content" style="display: none;">
+                        <div class="selected-meta-summary">
+                            <span class="badge" id="composer-badge">Feature</span>
+                            <span class="date" id="composer-date">June 15, 2026</span>
+                        </div>
+                        
+                        <div class="tweet-box-preview">
+                            <div class="tweet-user-profile">
+                                <div class="avatar-placeholder">BQ</div>
+                                <div class="profile-names">
+                                    <span class="display-name">BigQuery News</span>
+                                    <span class="handle">@bq_release</span>
+                                </div>
+                            </div>
+                            
+                            <div class="textarea-wrapper">
+                                <textarea id="tweet-textarea" rows="6" placeholder="What's happening?" aria-label="Edit your tweet text"></textarea>
+                            </div>
+                            
+                            <div class="composer-footer">
+                                <div class="character-counter" id="char-counter-container">
+                                    <svg class="progress-ring" width="24" height="24">
+                                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                                        <circle class="progress-ring__circle" id="char-progress" stroke="#4285f4" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                                    </svg>
+                                    <span id="char-count">280</span>
+                                </div>
+                                
+                                <button id="tweet-btn" class="btn btn-tweet">
+                                    <i class="fa-brands fa-x-twitter"></i>
+                                    <span>Post on X / Tweet</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="original-link-wrapper">
+                            <i class="fa-solid fa-link link-icon"></i>
+                            <a id="composer-original-link" href="#" target="_blank" rel="noopener noreferrer">
+                                View original documentation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 BigQuery Release Navigator. Designed for premium developer workflows.</p>
+        <p class="source-info">
+            Data sourced in real-time from the 
+            <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener noreferrer" id="source-feed-link">
+                Google Cloud BigQuery RSS Feed
+            </a>.
+        </p>
+    </footer>
+
+    <!-- App Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
